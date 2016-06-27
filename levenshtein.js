@@ -58,29 +58,46 @@ function determineMED(s1, s2, penalties) {
     if (typeof penalties != "object") {
         penalties = {
             replace: 1,
-            insert: 1, 
+            insert: 1,
             delete: 1
         };
     }
 
     const tbl = initTable();
     // printTable(tbl, s1, s2);
-    
+
     for (let i = 1; i < tbl.length; i++) {
         computeRow(tbl, i);
     }
-    // printTable(tbl, s1, s2);
+    printTable(tbl, s1, s2);
 
     return tbl[s1.length][s2.length];
-    
+
     function computeRow(tbl, i) {
         for (let j = 1; j < tbl[0].length; j++) {
             if (s1[i - 1] === s2[j - 1]) {
-                tbl[i][j] = tbl[i - 1][j - 1];
+                tbl[i][j] = [tbl[i - 1][j - 1][0], {
+                    r: i - 1,
+                    c: j - 1
+                }];
                 continue;
             }
 
-            tbl[i][j] = Math.min(tbl[i - 1][j] + penalties.delete, tbl[i - 1][j - 1] + penalties.replace, tbl[i][j - 1] + penalties.insert);
+            let previous = {r: i - 1, c: j} ; //assume l, we override it when not (exclusively) true
+            const t = tbl[i - 1][j][0];
+            const tl = tbl[i - 1][j - 1][0];
+            const l = tbl[i][j - 1][0];
+
+            const value = Math.min(tbl[i - 1][j][0], tbl[i - 1][j - 1][0], tbl[i][j - 1][0]) + 1;
+            
+            if (t <= tl && t <= l) {
+                previous = {r: i - 1, c: j};
+            }
+            else if (tl <= t && tl <= l) {
+                previous = {r: i - 1, c: j - 1};
+            }
+
+            tbl[i][j] = [value, previous];
         }
     }
 
@@ -89,18 +106,22 @@ function determineMED(s1, s2, penalties) {
 
         for (let i = 0; i < s1.length + 1; i++) {
             tbl.push([]);
-        } 
-
-        for (let i = 0; i < s1.length + 1; i++) {
-            tbl[i][0] = i;
         }
 
-	    for (let i = 0; i < s2.length + 1; i++) {
-            tbl[0][i] = i;
+        for (let i = 0; i < s1.length + 1; i++) {
+            tbl[i][0] = [i, {r: -1, c: -1}];
+        }
+
+        for (let i = 0; i < s2.length + 1; i++) {
+            tbl[0][i] = [i, {r: -1, c: -1}];
         }
 
         return tbl;
     }
+}
+
+function computeTrace(tbl) {
+    
 }
 
 function printTable(tbl, s1, s2) {
@@ -108,7 +129,7 @@ function printTable(tbl, s1, s2) {
     s2 = clone(s2);
     const copy = clone(tbl);
 
-    copy[0].unshift("");    
+    copy[0].unshift("");
     for (let i = 0; i < s1.length; i++) {
         copy[i + 1].unshift(s1[i]);
     }
@@ -126,13 +147,13 @@ function printTable(tbl, s1, s2) {
     }
 
     copy.forEach(row => {
-        const rowStr = row.reduce((prev, curr)  => {
-            return prev + curr + "\t";
+        const rowStr = row.reduce((prev, curr) => {
+            return prev + ((typeof curr == "object") ? curr[0] + ";" + curr[1].r + "|" + curr[1].c : curr) + "\t";
         }, "");
 
         console.log(rowStr);
     });
-} 
+}
 
 function clone(obj) {
     return JSON.parse(JSON.stringify(obj));
