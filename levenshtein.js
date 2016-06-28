@@ -69,9 +69,17 @@ function determineMED(s1, s2, penalties) {
     for (let i = 1; i < tbl.length; i++) {
         computeRow(tbl, i);
     }
-    printTable(tbl, s1, s2);
 
-    return tbl[s1.length][s2.length];
+    printTable(tbl, s1, s2);
+    const trace = computeTrace(tbl);
+    const costs = costsOfTrace(trace, penalties);
+    console.log("Trace: ", trace);
+    // console.log("Costs: ", costs);
+
+    return {
+        med: tbl[s1.length][s2.length][0],
+        costs: costs
+    };
 
     function computeRow(tbl, i) {
         for (let j = 1; j < tbl[0].length; j++) {
@@ -83,18 +91,18 @@ function determineMED(s1, s2, penalties) {
                 continue;
             }
 
-            let previous = {r: i - 1, c: j} ; //assume l, we override it when not (exclusively) true
+            let previous = { r: i - 1, c: j }; //assume l, we override it when not (exclusively) true
             const t = tbl[i - 1][j][0];
             const tl = tbl[i - 1][j - 1][0];
             const l = tbl[i][j - 1][0];
 
             const value = Math.min(tbl[i - 1][j][0], tbl[i - 1][j - 1][0], tbl[i][j - 1][0]) + 1;
-            
+
             if (t <= tl && t <= l) {
-                previous = {r: i - 1, c: j};
+                previous = { r: i - 1, c: j };
             }
             else if (tl <= t && tl <= l) {
-                previous = {r: i - 1, c: j - 1};
+                previous = { r: i - 1, c: j - 1 };
             }
 
             tbl[i][j] = [value, previous];
@@ -109,11 +117,11 @@ function determineMED(s1, s2, penalties) {
         }
 
         for (let i = 0; i < s1.length + 1; i++) {
-            tbl[i][0] = [i, {r: -1, c: -1}];
+            tbl[i][0] = [i, { r: i - 1, c: 0 }];
         }
 
         for (let i = 0; i < s2.length + 1; i++) {
-            tbl[0][i] = [i, {r: -1, c: -1}];
+            tbl[0][i] = [i, { r: 0, c: i - 1 }];
         }
 
         return tbl;
@@ -121,7 +129,51 @@ function determineMED(s1, s2, penalties) {
 }
 
 function computeTrace(tbl) {
-    
+    const list = [];
+    stepBack(tbl.length - 1, tbl[0].length - 1);
+
+    return list;
+
+    function stepBack(r, c) {
+        if (r <= 0 && c <= 0) return;
+
+        const prev = tbl[r][c][1];
+        stepBack(prev.r, prev.c);
+
+        let op;
+        if (prev.r == r - 1 && prev.c == c - 1) {
+            if (tbl[r][c][0] == tbl[prev.r][prev.c][0]) {
+                op = "nothing";
+            }
+            else {
+                op = "replace";
+            }
+        }
+        else if (prev.r == r - 1) {
+            op = "insert";
+        }
+        else {
+            op = "delete";
+        }
+
+        list.push({
+            r: r,
+            c: c,
+            op: op
+        });
+    }
+}
+
+function costsOfTrace(trace, penalties) {
+    let costs = 0;
+
+    trace.forEach(item => {
+        if (item.op !== "nothing") {
+            costs += penalties[item.op];
+        }
+    });
+
+    return costs;
 }
 
 function printTable(tbl, s1, s2) {
